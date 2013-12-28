@@ -44,6 +44,12 @@ endef
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
+	$(SED) 's|OpenWRT|TL-WR1043ND|' $(PKG_BUILD_DIR)/genconfig.sh
+	$(SED) 's|OS_URL=http://www.openwrt.org/|OS_URL=http://www.tp-link.com/|' $(PKG_BUILD_DIR)/genconfig.sh
+	$(SED) 's|router|Router|' $(PKG_BUILD_DIR)/testupnpdescgen.c
+	$(SED) 's|#define ROOTDEV_MANUFACTURER		OS_NAME|#define ROOTDEV_MANUFACTURER		"TP-LINK"|' $(PKG_BUILD_DIR)/upnpdescstrings.h
+	$(SED) 's|router|Router|' $(PKG_BUILD_DIR)/upnpdescstrings.h
+	$(SED) 's|router|Router|' $(PKG_BUILD_DIR)/upnpglobalvars.c
 	echo "OpenWrt/$(OPENWRTVERSION)" | tr \(\)\  _ >$(PKG_BUILD_DIR)/os.openwrt
 endef
 

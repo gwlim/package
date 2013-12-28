@@ -11,3 +11,8 @@ start() {
 stop() {
 	service_stop /usr/sbin/vsftpd
 }
+
+restart() {
+	service_stop /usr/sbin/vsftpd
+	service_start /usr/sbin/vsftpd
+}

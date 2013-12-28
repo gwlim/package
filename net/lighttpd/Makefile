@@ -102,6 +102,8 @@ $(call Build/Configure/Default)
 	# XXX: override pcre (mis)detection by ./configure when cross-compiling
 	echo "#define HAVE_LIBPCRE 1" >>$(PKG_BUILD_DIR)/config.h
 	echo "#define HAVE_PCRE_H 1" >>$(PKG_BUILD_DIR)/config.h
+	echo "#undef HAVE_SENDFILE_BROKEN" >>$(PKG_BUILD_DIR)/config.h
+	echo "#define HAVE_SEND_FILE 1" >>$(PKG_BUILD_DIR)/config.h
 endef
 
 define Package/lighttpd/conffiles

@@ -51,9 +51,10 @@ define Build/Configure
 		--prefix=/usr \
 		--enable-shared \
 		--enable-static \
+		--enable-optimize \
+		--enable-strip \
+		--disable-developer \
 		--disable-debug \
-		--disable-optimize \
-		--disable-strip \
 	)
 endef
 

@@ -102,7 +102,7 @@ fi
 
 #some constants
 
-retrieve_prog="/usr/bin/wget -O - ";
+retrieve_prog="/usr/bin/wget --no-check-certificate -O - ";
 if [ "x$use_https" = "x1" ]
 then
 	/usr/bin/wget --version 2>&1 |grep -q "\+ssl"

@@ -63,7 +63,9 @@ endef
 
 CONFIGURE_ARGS+= \
 	--disable-rpath \
-	--disable-iri
+	--disable-iri \
+	--disable-debug	\
+	--enable-threads=posix	\
 
 CONFIGURE_VARS += \
 	ac_cv_header_uuid_uuid_h=no
