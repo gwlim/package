@@ -119,10 +119,10 @@ then
 		retrieve_prog="/usr/bin/curl "
 		if [ -f "$cacert" ]
 		then
-			retrieve_prog="${retrieve_prog}--cacert $cacert "
+			retrieve_prog="${retrieve_prog}-k "
 		elif [ -d "$cacert" ]
 		then
-			retrieve_prog="${retrieve_prog}--capath $cacert "
+			retrieve_prog="${retrieve_prog}-k "
 		fi
 	fi
 fi
