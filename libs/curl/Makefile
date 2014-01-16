@@ -92,6 +92,9 @@ CONFIGURE_ARGS += \
 	--enable-static \
 	--enable-thread \
 	--enable-nonblocking \
+	--enable-optimize \
+	--enable-ipv6 \
+	--enable-threaded-resolver \
 	--disable-ares \
 	--disable-debug \
 	--disable-manual \
