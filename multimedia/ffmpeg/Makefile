@@ -160,7 +160,7 @@ define Package/ffmpeg/Default
 endef
 
 define Package/ffmpeg/Default/description
- FFmpeg is a a software package that can record, convert and stream digital 
+ FFmpeg is a a software package that can record, convert and stream digital
  audio and video in numerous formats.
 endef
 
@@ -287,10 +287,12 @@ FFMPEG_CONFIGURE:= \
 	--enable-gpl \
 	--enable-version3 \
 	\
+	--disable-altivec \
 	--disable-doc \
 	--disable-dxva2 \
 	--enable-pthreads \
 	--enable-small \
+	--disable-stripping \
 	--enable-zlib \
 	--disable-outdevs
 
