@@ -41,8 +41,6 @@ do_modules() {
 [ -z "$ELIMIT" ] && ELIMIT=
 [ -z "$ITARGET" ] && ITARGET=
 [ -z "$ETARGET" ] && ETARGET=
-#[ -z "$AUTOECN" ] && AUTOECN=1
-#[ -z "$ALLECN" ] && ALLECN=2
 [ -z "$IECN" ] && IECN="ECN"
 [ -z "$EECN" ] && EECN="NOECN"
 [ -z "$IQDISC_OPTS" ] && IQDISC_OPTS=""
@@ -159,14 +157,22 @@ get_flows() {
 }	
 
 # set the target parameter, also try to only take well formed inputs
+# Note, the link bandwidth in the current direction (ingress or egress) 
+# is required to adjust the target for slow links
 get_target() {
-	CUR_TARGET=$1
-	#logger "cur_target: $CUR_TARGET"
+	local CUR_TARGET=${1}
+	local CUR_LINK_KBPS=${2}
+	[ ! -z "$CUR_TARGET" ] && logger "cur_target: ${CUR_TARGET} cur_bandwidth: ${CUR_LINK_KBPS}"
 	CUR_TARGET_STRING=
 	# either e.g. 100ms or auto
 	CUR_TARGET_VALUE=$( echo ${CUR_TARGET} | grep -o -e \^'[[:digit:]]\+' )
 	CUR_TARGET_UNIT=$( echo ${CUR_TARGET} | grep -o -e '[[:alpha:]]\+'\$ )
-	# calculate target correctly for lower bandwidths somehow FIXME
+#	[ ! -z "$CUR_TARGET" ] && logger "CUR_TARGET_VALUE: $CUR_TARGET_VALUE"
+#	[ ! -z "$CUR_TARGET" ] && logger "CUR_TARGET_UNIT: $CUR_TARGET_UNIT"
+	
+	AUTO_TARGET=
+	UNIT_VALID=
+	
 	case $QDISC in
 		*codel|*pie) 
 			if [ ! -z "${CUR_TARGET_VALUE}" -a ! -z "${CUR_TARGET_UNIT}" ];
@@ -175,18 +181,70 @@ get_target() {
     				    # permissible units taken from: tc_util.c get_time()
 				    s|sec|secs|ms|msec|msecs|us|usec|usecs) 
 					CUR_TARGET_STRING="target ${CUR_TARGET_VALUE}${CUR_TARGET_UNIT}" 
+					UNIT_VALID="1"
 					;;
 			    esac
 			fi
 			case ${CUR_TARGET_UNIT} in
-			    # not yet wired up
-			    auto|Auto|AUTO) CUR_TARGET_STRING= ; logger "autotarget: auto" ;;
+			    auto|Auto|AUTO) 
+				if [ ! -z "${CUR_LINK_KBPS}" ];
+				then
+				    TMP_TARGET_US=$( adapt_target_to_slow_link $CUR_LINK_KBPS )
+				    TMP_INTERVAL_STRING=$( adapt_interval_to_slow_link $TMP_TARGET_US )
+				    CUR_TARGET_STRING="target ${TMP_TARGET_US}us ${TMP_INTERVAL_STRING}"
+				    AUTO_TARGET="1"
+			    	else
+			    	    logger "required link bandwidth in kbps not passed to get_target()." 
+			        fi
+			    ;;
 			esac
+			if [ ! -z "${CUR_TARGET}" ];
+			    then
+			    if [ -z "${CUR_TARGET_VALUE}" -o -z "${UNIT_VALID}" ];
+			    then 
+				[ -z "$AUTO_TARGET" ] && logger "${CUR_TARGET} is not a well formed tc target specifier; e.g.: 5ms (or s, us), or the string auto."
+			    fi
+			fi
 		    ;;
 	esac
-	logger "target: ${CUR_TARGET_STRING}"
+#	logger "target: ${CUR_TARGET_STRING}"
 	echo $CUR_TARGET_STRING
 }	
+
+# for low bandwidth links fq_codels default target of 5ms does not work too well
+# so increase target for slow links (note below roughly 2500kbps a single packet will \
+# take more than 5 ms to be tansfered over the wire)
+adapt_target_to_slow_link() {
+    CUR_LINK_KBPS=$1
+    CUR_EXTENDED_TARGET_US=
+    MAX_PAKET_DELAY_IN_US_AT_1KBPS=$(( 1000 * 1000 *1540 * 8 / 1000 ))
+    CUR_EXTENDED_TARGET_US=$(( ${MAX_PAKET_DELAY_IN_US_AT_1KBPS} / ${CUR_LINK_KBPS} ))	# note this truncates the decimals
+    # do not change anything for fast links
+    [ "$CUR_EXTENDED_TARGET_US" -lt 5000 ] && CUR_EXTENDED_TARGET_US=5000
+    case ${QDISC} in
+        *codel|pie)
+	    echo "${CUR_EXTENDED_TARGET_US}"
+	    ;;
+    esac
+}
+
+# codel looks at a whole interval to figure out wether observed latency stayed below target
+# if target >= interval that will not work well, so increase interval by the same amonut that target got increased
+adapt_interval_to_slow_link() {
+    CUR_TARGET_US=$1
+    case ${QDISC} in
+        *codel)
+            CUR_EXTENDED_INTERVAL_US=$(( (100 - 5) * 1000 + ${CUR_TARGET_US} ))
+	    echo "interval ${CUR_EXTENDED_INTERVAL_US}us"
+	    ;;
+	pie)
+	    ## not sure if pie needs this, probably not
+	    #CUR_EXTENDED_TUPDATE_US=$(( (30 - 20) * 1000 + ${CUR_TARGET_US} ))
+	    #echo "tupdate ${CUR_EXTENDED_TUPDATE_US}us"
+	    ;;
+    esac
+}
+
 
 # set quantum parameter if available for this qdisc
 get_quantum() {
@@ -194,7 +252,6 @@ get_quantum() {
 	*fq_codel|fq_pie|drr) echo quantum $1 ;;
 	*) ;;
     esac
-
 }
 
 # only show limits to qdiscs that can handle them...
@@ -249,37 +306,6 @@ get_ecn() {
 	echo ${CURECN}
 
 }
-
-
-#ECN="ecn"
-#NOECN="noecn"
-
-# ECN is somewhat useful but it helps to have a way
-# to turn it on or off. 
-# To do ECN on egress & ingress set ALLECN=1
-# To not do ECN on egress & ingress set ALLECN=0
-# to do ECN on ingress only set ALLECN=2 (default)
-
-qdisc_variants() {
-    if [ "$AUTOECN" -eq "1" ]
-    then
-    case $QDISC in
-	*codel|*pie|*red) ECN=ecn; NOECN=noecn ;;
-	*) ECN=""; NOECN="" ;;
-    esac
-    if [ "$ALLECN" -eq "1" ]
-    then
-        NOECN=$ECN
-    fi
-    if [ "$ALLECN" -eq "0" ]
-    then
-        ECN=$NOECN
-    fi
-    fi
-
-}
-
-qdisc_variants
 
 # This could be a complete diffserv implementation
 
