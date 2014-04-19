@@ -291,6 +291,7 @@ FFMPEG_CONFIGURE:= \
 	--enable-pthreads \
 	--enable-small \
 	--enable-zlib \
+	--enable-nonfree \
 	--disable-outdevs
 
 ifeq ($(BUILD_VARIANT),custom)
