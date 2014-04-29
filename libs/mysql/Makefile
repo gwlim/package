@@ -59,13 +59,12 @@ endef
 
 TARGET_CXX=g++-uc
 
-TARGET_CFLAGS += $(FPIC)
+TARGET_CFLAGS += $(FPIC) -msplit-addresses -mexplicit-relocs
 
 CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-static \
-	--enable-thread-safe-client \
-	--disable-assembler \
+	--enable-assembler \
 	--with-pthread \
 	--with-server \
 	--without-mysqlmanager \
