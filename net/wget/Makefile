@@ -78,6 +78,7 @@ endif
 
 ifeq ($(BUILD_VARIANT),nossl)
 	CONFIGURE_ARGS+= \
+		--disable-ntlm \
 		--without-ssl
 endif
 
