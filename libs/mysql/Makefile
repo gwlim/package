@@ -59,7 +59,7 @@ endef
 
 TARGET_CXX=g++-uc
 
-TARGET_CFLAGS += $(FPIC) -msplit-addresses -mexplicit-relocs
+TARGET_CFLAGS += $(FPIC)
 
 CONFIGURE_ARGS += \
 	--enable-shared \
