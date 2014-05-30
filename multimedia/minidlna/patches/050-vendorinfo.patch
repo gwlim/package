@@ -1,0 +1,29 @@
+--- a/configure
++++ b/configure
+@@ -7594,22 +7594,22 @@ fi
+ # Default string definitions
+ 
+ cat >>confdefs.h <<_ACEOF
+-#define OS_URL "http://sourceforge.net/projects/minidlna/"
++#define OS_URL "http://www.tp-link.com/"
+ _ACEOF
+ 
+ 
+ cat >>confdefs.h <<_ACEOF
+-#define ROOTDEV_MANUFACTURER "Justin Maggard"
++#define ROOTDEV_MANUFACTURER "TP-LINK"
+ _ACEOF
+ 
+ 
+ cat >>confdefs.h <<_ACEOF
+-#define ROOTDEV_MANUFACTURERURL "http://www.netgear.com/"
++#define ROOTDEV_MANUFACTURERURL "http://www.tp-link.com/"
+ _ACEOF
+ 
+ 
+ cat >>confdefs.h <<_ACEOF
+-#define ROOTDEV_MODELNAME "Windows Media Connect compatible (MiniDLNA)"
++#define ROOTDEV_MODELNAME "Windows Media Connect Compatible (MiniDLNA)"
+ _ACEOF
+ 
+ 
