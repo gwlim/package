@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=minidlna
-PKG_VERSION:=1.1.2
+PKG_VERSION:=1.0.25
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE:=$(PKG_NAME)_$(PKG_VERSION)_src.tar.gz
 PKG_SOURCE_URL:=@SF/minidlna
-PKG_MD5SUM:=65cebffaf9b57bf30fbfcf2a3a3253e6
+PKG_MD5SUM:=d966256baf2f9b068b9de871ab5dade5
 
 PKG_BUILD_PARALLEL:=0
 PKG_BUILD_DEPENDS:=util-linux
@@ -38,7 +38,6 @@ define Package/minidlna/description
 endef
 
 define Package/minidlna/conffiles
-/etc/config/minidlna
 /etc/minidlna.conf
 endef
 
@@ -65,19 +64,20 @@ MAKE_FLAGS +=\
 	LDFLAGS="$(TARGET_LDFLAGS)" \
 	ICONV_LIBS="-liconv $(if $(INTL_FULL),-lintl)" \
 
-CONFIGURE_ARGS += \
-	--program-prefix="$(STAGING_DIR)/usr" \
-	--with-libiconv-prefix="$(ICONV_PREFIX)" \
-	--with-libintl-prefix="$(INTL_PREFIX)" \
-	--with-os-name="OpenWrt Linux" \
-	--with-os-version="$(LINUX_VERSION)" \
-	--with-os-url="http://www.tp-link.com/" \
-	--with-db-path="/var/run/minidlna" \
-	--with-log-path="/var/log" \
+MAKE_VARS +=\
+	PREFIX="$(STAGING_DIR)/usr" \
+	ICONV_PREFIX="$(ICONV_PREFIX)" \
+	INTL_PREFIX="$(INTL_PREFIX)" \
+	OS_NAME="OpenWrt Linux" \
+	OS_VERSION="$(LINUX_VERSION)" \
+	OS_URL="http://www.tp-link.com/" \
+	DB_PATH="/var/run/minidlna" \
+	LOG_PATH="/var/log" \
+
 
 define Package/minidlna/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/minidlnad $(1)/usr/sbin/
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/minidlna $(1)/usr/bin/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/minidlna.init $(1)/etc/init.d/minidlna
 	$(INSTALL_DIR) $(1)/etc/config
