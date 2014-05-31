@@ -36,12 +36,20 @@ mwan3_set_general_iptables()
 		iptables -A mwan3_hook -t mangle -j CONNMARK --save-mark --nfmask 0xff00 --ctmask 0xff00
 	fi
 
+	if ! iptables -S mwan3_track_hook -t mangle &> /dev/null; then
+		iptables -N mwan3_track_hook -t mangle
+	fi
+
 	if ! iptables -S PREROUTING -t mangle | grep mwan3_hook &> /dev/null; then
 		iptables -A PREROUTING -t mangle -j mwan3_hook
 	fi
 
 	if ! iptables -S OUTPUT -t mangle | grep mwan3_hook &> /dev/null; then
 		iptables -A OUTPUT -t mangle -j mwan3_hook
+	fi
+
+	if ! iptables -S OUTPUT -t mangle | grep mwan3_track_hook &> /dev/null; then
+		iptables -A OUTPUT -t mangle -j mwan3_track_hook
 	fi
 
 	iptables -F mwan3_rules -t mangle
@@ -123,7 +131,7 @@ mwan3_set_iface_rules()
 
 mwan3_track()
 {
-	local track_ips reliability count timeout interval down up
+	local track_ip track_ips reliability count timeout interval down up
 
 	mwan3_list_track_ips()
 	{
@@ -139,7 +147,21 @@ mwan3_track()
 		config_get down $INTERFACE down 5
 		config_get up $INTERFACE up 5
 
+		if ! iptables -S mwan3_track_$INTERFACE -t mangle &> /dev/null; then
+			iptables -N mwan3_track_$INTERFACE -t mangle
+			iptables -A mwan3_track_hook -t mangle -j mwan3_track_$INTERFACE
+		fi
+
+		iptables -F mwan3_track_$INTERFACE -t mangle
+
+		for track_ip in $track_ips; do
+			iptables -A mwan3_track_$INTERFACE -t mangle -p icmp -m icmp --icmp-type 8 -d $track_ip -o $DEVICE -j MARK --set-xmark 0xff00/0xff00
+		done
+
 		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track $INTERFACE $DEVICE $reliability $count $timeout $interval $down $up $track_ips &
+	else
+		iptables -D mwan3_track_hook -t mangle -j mwan3_track_$INTERFACE &> /dev/null
+		iptables -X mwan3_track_$INTERFACE -t mangle &> /dev/null
 	fi
 }
 
@@ -164,6 +186,8 @@ mwan3_set_policy()
 			iptables -F mwan3_policy_$policy -t mangle
 			iptables -A mwan3_policy_$policy -t mangle -m mark --mark 0x0/0xff00 -m comment --comment "$INTERFACE $weight $weight" -j MARK --set-xmark $(($iface_id*256))/0xff00
 
+			lowest_metric=$metric
+
 		elif [ "$metric" -eq "$lowest_metric" ]; then
 
 			total_weight=$(($total_weight+$weight))
@@ -183,9 +207,6 @@ mwan3_set_policy()
 			
 			iptables -I mwan3_policy_$policy -t mangle -m mark --mark 0x0/0xff00 $probability -m comment --comment "$INTERFACE $weight $total_weight" -j MARK --set-xmark $(($iface_id*256))/0xff00
 		fi
-
-	lowest_metric=$metric
-
 	fi
 }
 
@@ -218,7 +239,7 @@ mwan3_set_user_rules_iptables()
 {
 	local proto src_ip src_port dest_ip dest_port use_policy
 
-	config_get proto $1 proto
+	config_get proto $1 proto all
 	config_get src_ip $1 src_ip 0.0.0.0/0
 	config_get src_port $1 src_port 0:65535
 	config_get dest_ip $1 dest_ip 0.0.0.0/0
@@ -235,14 +256,11 @@ mwan3_set_user_rules_iptables()
 		fi
 
 		case $proto in
-			icmp)
-			iptables -A mwan3_rules -t mangle -p $proto -s $src_ip -d $dest_ip -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
-			;;
 			tcp|udp)
 			iptables -A mwan3_rules -t mangle -p $proto -s $src_ip -d $dest_ip -m multiport --sports $src_port -m multiport --dports $dest_port -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			;;
 			*)
-			iptables -A mwan3_rules -t mangle -s $src_ip -d $dest_ip -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
+			iptables -A mwan3_rules -t mangle -p $proto -s $src_ip -d $dest_ip -m mark --mark 0/0xff00 -m comment --comment "$1" -j $use_policy &> /dev/null
 			;;
 		esac
 	fi
@@ -264,8 +282,6 @@ mwan3_ifupdown()
 		[ "$enabled" -eq 1 ] || exit 0
 
 		count=0
-
-		#while [ -z "$(ip -4 route list dev $DEVICE default | sed '/.*metric \([^ ]*\) .*$/!d;s//\1/;q')" -a "$count" -lt 10 ]; do
 		while [ -z "$(ip -4 route list dev $DEVICE default | head -1)" -a "$count" -lt 10 ]; do
 			sleep 1
 			let count++
@@ -273,18 +289,20 @@ mwan3_ifupdown()
 				logger -t mwan3 -p warn "Could not find gateway for interface $INTERFACE ($DEVICE)" && exit 0
 			fi
 		done
-
-		while [ "$(pgrep -f -o hotplug-call)" -ne $$ -a "$count" -lt 60 ]; do
-			sleep 1
-			let count++
-			if [ "$count" -ge 60 ]; then
-				logger -t mwan3 -p warn "Timeout waiting for older hotplug processes to finish. $ACTION interface $INTERFACE ($DEVICE) aborted" && exit 0
-			fi
-		done
-								
 		unset count
+
 		mwan3_get_route_args
 	fi
+
+	count=0
+	while [ "$(pgrep -f -o hotplug-call)" -ne $$ -a "$count" -lt 60 ]; do
+		sleep 1
+		let count++
+		if [ "$count" -ge 60 ]; then
+			logger -t mwan3 -p warn "Timeout waiting for older hotplug processes to finish. $ACTION interface $INTERFACE ($DEVICE) aborted" && exit 0
+		fi
+	done
+	unset count
 
 	config_foreach mwan3_get_iface_id interface
 
