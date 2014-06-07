@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=minidlna
-PKG_VERSION:=1.1.2
+PKG_VERSION:=1.1.3
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/minidlna
-PKG_MD5SUM:=65cebffaf9b57bf30fbfcf2a3a3253e6
+PKG_MD5SUM:=879027192c89e5376cdd2ae2d1aa33b4
 
 PKG_BUILD_PARALLEL:=0
 PKG_BUILD_DEPENDS:=util-linux
@@ -66,6 +66,7 @@ MAKE_FLAGS +=\
 	ICONV_LIBS="-liconv $(if $(INTL_FULL),-lintl)" \
 
 CONFIGURE_ARGS += \
+	--disable-nls \
 	--program-prefix="$(STAGING_DIR)/usr" \
 	--with-libiconv-prefix="$(ICONV_PREFIX)" \
 	--with-libintl-prefix="$(INTL_PREFIX)" \
