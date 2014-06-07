@@ -55,6 +55,7 @@ CONFIGURE_ARGS+= \
 	--enable-static \
 	--disable-rpath \
 	--without-attr \
+	--without-zlib \
 	--without-bzip2 \
 	--without-fam \
 	--without-gdbm \
