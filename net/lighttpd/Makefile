@@ -104,7 +104,6 @@ $(call Build/Configure/Default)
 	echo "#define HAVE_PCRE_H 1" >>$(PKG_BUILD_DIR)/config.h
 	echo "#undef HAVE_SENDFILE_BROKEN" >>$(PKG_BUILD_DIR)/config.h
 	echo "#define HAVE_SEND_FILE 1" >>$(PKG_BUILD_DIR)/config.h
-	$(SED) '/.png/a\  ".svg"          =>      "image/svg+xml",' $(PKG_BUILD_DIR)/doc/config/conf.d/mime.conf
 endef
 
 define Package/lighttpd/conffiles
@@ -114,7 +113,7 @@ endef
 define Package/lighttpd/install
 	$(INSTALL_DIR) $(1)/etc/lighttpd
 	$(INSTALL_DATA) ./files/lighttpd.conf $(1)/etc/lighttpd/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/doc/config/conf.d/mime.conf $(1)/etc/lighttpd/
+	$(INSTALL_DATA) ./files/mime.conf $(1)/etc/lighttpd/
 	$(INSTALL_DIR) $(1)/etc/lighttpd/conf.d
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/lighttpd.init $(1)/etc/init.d/lighttpd
