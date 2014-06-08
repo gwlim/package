@@ -50,9 +50,9 @@ else
 endif
 
 define Package/l7-protocols/install
+	find $(PKG_BUILD_DIR) -name "README" -delete
 	$(INSTALL_DIR) $(1)/etc/l7-protocols
-	$(CP) $(PKG_BUILD_DIR)/example_traffic \
-		$(PKG_BUILD_DIR)/extra \
+	$(CP) $(PKG_BUILD_DIR)/extra \
 		$(PKG_BUILD_DIR)/file_types \
 		$(PKG_BUILD_DIR)/groups.sh \
 		$(PKG_BUILD_DIR)/malware \
