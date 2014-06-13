@@ -64,6 +64,7 @@ endef
 CONFIGURE_ARGS+= \
 	--disable-rpath \
 	--disable-iri \
+	--disable-nls \
 	--disable-debug	\
 	--enable-threads=posix	\
 
